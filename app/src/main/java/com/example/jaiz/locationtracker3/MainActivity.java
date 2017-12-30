@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private LocationManager locationManager;
     private LocationListener listener;
-    private Button b;
+    private Button getLocationButton;
     //private TextView t;
     private double lat=0,lon=0;
     private String tim;
@@ -55,9 +55,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private double[] y = {0,0,0,0,0};
     private double[] z = {0,0,0,0,0};
     private double value_x,value_y,value_z;
+    private double est_x,est_y,est_z;
+    private Matrix est_out;
 
     //These objects are in edit section
-    private TextView acc,accv,lati,latv,loni,lonv,dat,datv;
+    private TextView acc_name, acc_value, lat_name, lat_value, lon_name, lon_value,dat, date_vale,real_value,est_value;
     private double rms;
     //Close Edit section
 
@@ -70,16 +72,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(policy);
 
-        acc = (TextView) findViewById(R.id.acc);
-        accv = (TextView) findViewById(R.id.accv);
-        lati = (TextView) findViewById(R.id.lat);
-        latv = (TextView) findViewById(R.id.latv);
-        loni = (TextView) findViewById(R.id.lon);
-        lonv = (TextView) findViewById(R.id.lonv);
+        acc_name = (TextView) findViewById(R.id.acc);
+        acc_value = (TextView) findViewById(R.id.accv);
+        lat_name = (TextView) findViewById(R.id.lat);
+        lat_value = (TextView) findViewById(R.id.latv);
+        lon_name = (TextView) findViewById(R.id.lon);
+        lon_value = (TextView) findViewById(R.id.lonv);
         dat = (TextView) findViewById(R.id.dat);
-        datv = (TextView) findViewById(R.id.datv);
+        date_vale = (TextView) findViewById(R.id.datv);
+        est_value = (TextView) findViewById(R.id.est);
+        real_value = (TextView) findViewById(R.id.real);
 
-        b = (Button) findViewById(R.id.get_loca);
+        getLocationButton = (Button) findViewById(R.id.get_loca);
 
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
@@ -90,8 +94,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 lat = location.getLatitude();
                 lon = location.getLongitude();
                 //t.setText("\n Longitude: " + lat + "\n Latitude:    " + lon);
-                latv.setText(Double.toString(lat));
-                lonv.setText(Double.toString(lon));
+                lat_value.setText(Double.toString(lat));
+                lon_value.setText(Double.toString(lon));
             }
 
             @Override
@@ -184,7 +188,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             return;
         }
         // this code won't execute IF permissions are not allowed, because in the line above there is return statement.
-        b.setOnClickListener(new View.OnClickListener() {
+        getLocationButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 //noinspection MissingPermission
@@ -193,8 +197,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
     }
 
-    //Do here
 
+
+    //This method takes in an array and a number and shifts the numbers in array and puts the number at last position of array.
     public double[] Shift(double s[], double a){
         for (int i = 0; i<s.length-1;i++){
             s[i]=s[i+1];
@@ -203,6 +208,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return s;
     }
 
+    //This is the SG Filter output of the array of five constituents.
     public double SGFilter(double s[]){
         if (s.length==5){
             return (-3*s[0]+12*s[1]+17*s[2]+12*s[3]-3*s[4])/35;
@@ -216,6 +222,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (on == Boolean.TRUE){
             //timer++;
 
+            /*
             x = this.Shift(x,(double) sensorEvent.values[0]);
             y = this.Shift(y,(double) sensorEvent.values[1]);
             z = this.Shift(z,(double) sensorEvent.values[2]);
@@ -223,14 +230,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             value_x = this.SGFilter(x);
             value_y = this.SGFilter(y);
             value_z = this.SGFilter(z);
+            */
+
+
+            value_x = sensorEvent.values[0];
+            value_y = sensorEvent.values[1];
+            value_z = sensorEvent.values[2];
+
+            est_out = KalmanFilter.Kalman(1,value_x,value_y,value_z);
+
+            est_x = est_out.getElement(0,0);
+            est_y = est_out.getElement(1,0);
+            est_z = est_out.getElement(2,0);
+
+            est_value.setText("Estimated Values\nACC X:" + est_x + "\nACC Y:" + est_y + "\nACC Z:" + est_z);
+            real_value.setText("Real Values\nACC X:" + value_x + "\nACC Y:" + value_y + "\nACC Z:" + value_z);
 
             rms = Math.sqrt((value_x*value_x+value_y*value_y+value_z*value_z)/3);
 
             cal = Calendar.getInstance(tz);
             tim = dateFormat.format(cal.getTime());
 
-            accv.setText(Double.toString(rms));
-            datv.setText(tim);
+            acc_value.setText(Double.toString(rms));
+            date_vale.setText(tim);
 
             if(tim.substring(17,19).equals("00")||tim.substring(17,19).equals("30")){
 
@@ -249,7 +271,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         else{
             value_x = 0;value_y  = 0;value_z = 0;
-            accv.setText("NA");
+            acc_value.setText("NA");
             //tText.setText("Time:  NA");
         }
 
